@@ -1,44 +1,30 @@
-# 🎲 DnD Dice – Realtime (Socket.IO)
+# DnD Dice — Realtime Roller (3D + Rooms)
 
-Hody kostkou pro Dungeons & Dragons sdílené v reálném čase mezi všemi hráči u stejného „stolu“ (room). Server hází kostky (crypto.randomInt), klient jen zobrazuje → férové a synchronní.
+A lightweight, realtime dice roller for tabletop sessions. Join the same **room** with your friends and share identical results. Includes a clean UI, a sidebar feed (newest on top), optional sound, on-canvas **3D dice** (Three.js), and a simple player **Scoreboard** (last roll + average).
 
-## Stack
-- Node.js + Express
-- Socket.IO (WebSockety)
-- Jedna instance (bez Redis adapteru), ideální pro Koyeb free
+## Features
+- Realtime rooms (shared rolls per table)
+- Dice presets: d4, d6, d8, d10, d12, d20, d100 (+ modifier, count)
+- Advantage / Disadvantage quick actions (d20)
+- 3D dice animation (performance-friendly, no physics)
+- Optional synthesized sound (no audio files)
+- Results feed (newest first), CSV export, clear results
+- Player scoreboard (last roll & average)
+- (Optional, planned) GM controls: lock table, clear for everyone, transfer GM
 
----
+## Tech
+- **Server:** Node.js, Express, Socket.IO
+- **Client:** Vanilla JS, Three.js, Tween.js
+- **Hosting:** works fine on free tiers (e.g. Render)
 
-## Lokální spuštění
+## Quick Start (Local)
 ```bash
-npm install
+npm i
 npm start
-# otevři http://localhost:3000
-```
+# open http://localhost:3000
 
----
+#How it Works
+The server rolls the dice (crypto-secure RNG) and broadcasts the same result to everyone in the room.
 
-## Nasazení na Koyeb (free)
-1. Na GitHubu vytvoř repo a nahraj tento projekt (branch `main`).
-2. Přihlas se do Koyeb → **Create Web Service** → **GitHub** → vyber repo a branch.
-3. **Builder** nech **Buildpack** (Node.js se detekuje automaticky).
-4. **Run/Start command**: `npm start` (většinou se doplní samo).
-5. **Exposed port**: přidej **3000** jako **HTTP** (`/`). Koyeb předá appce env `PORT`.
-6. **Environment variables**: přidej `NODE_ENV=production`.
-7. **Deploy**. Po chvilce dostaneš URL `https://…koyeb.app`. Otevři ve 2 oknech a zkus hodit.
+The client animates 3D dice, plays an optional sound, and updates the feed + scoreboard.
 
-> Poznámky:
-> - Free plán se může po nečinnosti „uspat“ a první request ji zase probudí (počítej s pár sekundami navíc při prvním načtení).
-> - Pokud bys někdy škálovala na více instancí, Socket.IO vyžaduje adapter (např. Redis). Na free jedné instanci to není potřeba.
-
----
-
-## Použití
-- V horní liště vyplň **Jméno** a **Stůl** (např. `stul-1`) → **Připojit**.
-- Volitelně sdílej přímý odkaz s parametrem `?room=stul-1`.
-- Vyber kostku (d4…d100), počet a modifikátor, klikni **Hodit!** → všichni ve stejném „stolu“ uvidí shodný výsledek.
-
-## Bezpečnost / UX nápady (volitelné)
-- Přidat „heslo stolu“ (room pass) a zvýraznění přirozené 1/20 u d20.
-- Logování hodů (SQLite) – aby přežily restart.
-- GM tajné hody = separátní room (např. `stul-xyz-gm`).
