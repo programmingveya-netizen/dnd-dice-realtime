@@ -121,7 +121,7 @@ button:hover { filter: brightness(1.08); }
 }
 
 /* (volitelné) vzhled tlačítek – můžeš ponechat tvoje stávající */
-#advBtn, #disBtn, #muteBtn, #exportBtn{
+#advBtn, #disBtn, #muteBtn, #exportBtn, #clearBtn{
   background: #16202b; border: 1px solid #2b3b4f; padding: .55rem .7rem; border-radius: .6rem;
 }
 #advBtn{ border-color: #3f6e3a; }
