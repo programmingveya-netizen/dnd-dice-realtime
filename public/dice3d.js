@@ -8,8 +8,9 @@ window.Dice3D = (() => {
     container = document.getElementById(containerId);
     if (!container || !window.THREE) return;
 
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75)); // šetrné k výkonu
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+renderer.setClearColor(0x0b0f14, 1);
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
