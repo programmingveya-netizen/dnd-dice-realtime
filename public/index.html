@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DnD Kostky – realtime</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">🎲 DnD Kostky</div>
+    <div class="session">
+      <label>Jméno
+        <input id="playerInput" type="text" maxlength="32" placeholder="Hráč">
+      </label>
+      <label>Stůl
+        <input id="roomInput" type="text" maxlength="32" placeholder="stul-1">
+      </label>
+      <button id="joinBtn" class="primary">Připojit</button>
+      <button id="shareBtn" title="Zkopíruje odkaz na aktuální stůl">Sdílet odkaz</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="roller card">
+      <h2>Hod kostkou</h2>
+      <div class="grid">
+        <label>Kostka
+          <select id="sidesSelect">
+            <option value="4">d4</option>
+            <option value="6" selected>d6</option>
+            <option value="8">d8</option>
+            <option value="10">d10</option>
+            <option value="12">d12</option>
+            <option value="20">d20</option>
+            <option value="100">d100</option>
+          </select>
+        </label>
+        <label>Počet
+          <input id="countInput" type="number" min="1" max="10" value="1">
+        </label>
+        <label>Modifikátor
+          <input id="modInput" type="number" min="-99" max="99" value="0">
+        </label>
+        <div class="actions">
+          <button id="rollBtn" class="accent">Hodit!</button>
+        </div>
+      </div>
+      <p class="hint">Tip: sdílej odkaz na stůl, ať házíte společně.</p>
+    </section>
+
+    <section class="feed card">
+      <h2>Výsledky</h2>
+      <div id="feed" class="feedList" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <footer class="foot">Server hází kostky, takže výsledek je pro všechny stejný. ✨</footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
