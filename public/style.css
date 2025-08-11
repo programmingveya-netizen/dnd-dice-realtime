@@ -64,8 +64,8 @@ button:hover { filter: brightness(1.08); }
 #dice3d {
   width: 100%;
   aspect-ratio: 16 / 9;
-  min-height: 320px; /* fallback, když by aspect-ratio nezabralo */
-  background: #0b0f14;
+  min-height: 360px;
+  background: #0b0f14;           /* jednolité, nic neprosvítá */
   border: 1px solid #1e2a37;
   border-radius: .9rem;
   overflow: hidden;
