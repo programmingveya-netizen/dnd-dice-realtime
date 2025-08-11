@@ -5,7 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // 2) Najdi prvky v DOM (když chybí ID, zobrazíme chybovou hlášku – nic se nezablokuje)
+  // (Volitelné) inicializace 3D scény – pokud je k dispozici dice3d.js a <div id="dice3d">
+  if (window.Dice3D) {
+    try { Dice3D.init('dice3d'); } catch (e) { console.warn('Dice3D init error:', e); }
+  }
+
+  // 2) Najdi prvky v DOM (když chybí ID, zobrazíme hlášku – nic se nezablokuje)
   const $ = (id) => document.getElementById(id);
   const playerInput = $('playerInput');
   const roomInput   = $('roomInput');
@@ -121,7 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
   socket.on('connect_error', (err) => addSystemMessage('⚠️ Problém s připojením: ' + err.message, Date.now()));
   socket.on('joined', ({ room, player }) => addSystemMessage(`Připojeno ke stolu „${room}“ jako ${player}.`, Date.now()));
   socket.on('system', (msg) => addSystemMessage(msg.text, msg.ts || Date.now()));
-  socket.on('dice-result', (res) => addResultItem(res));
+  socket.on('dice-result', (res) => {
+    addResultItem(res);
+    // Spusť 3D animaci, pokud je k dispozici
+    if (window.Dice3D) {
+      try { Dice3D.roll(res.sides, res.rolls); } catch (e) { console.warn('Dice3D roll error:', e); }
+    }
+  });
 
   // 7) Ovládání UI
   joinBtn.addEventListener('click', joinRoom);
