@@ -127,3 +127,51 @@ button:hover { filter: brightness(1.08); }
 #advBtn{ border-color: #3f6e3a; }
 #disBtn{ border-color: #6e3a3a; }
 #muteBtn.active{ background: #1f2f20; border-color: #2f6e4f; }
+/* === SCOREBOARD === */
+.scoreboard.card { margin-bottom: 1rem; }
+.scoreGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
+  gap: .6rem;
+}
+.scCard {
+  background: #0f1620;
+  border: 1px solid #2a3b50;
+  border-radius: .7rem;
+  padding: .6rem .7rem;
+}
+.scHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .35rem;
+  font-size: .9rem;
+  color: var(--muted);
+}
+.scName { font-weight: 600; color: var(--text); }
+.scAvg  { font-size: .85rem; color: var(--muted); }
+
+.scLast {
+  display: flex;
+  gap: .35rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.scDice { display: flex; gap: .25rem; flex-wrap: wrap; }
+.scDie  {
+  border: 1px solid #30465d;
+  border-radius: .35rem;
+  padding: .1rem .35rem;
+  font-variant-numeric: tabular-nums;
+}
+.scDie.nat20 { background: #173b26; border-color: #2f6e4f; font-weight: 700; }
+.scDie.nat1  { background: #3b1a1a; border-color: #8a3c3c; font-weight: 700; }
+
+.scTotal {
+  margin-left: auto;
+  padding: .1rem .45rem;
+  border-radius: .5rem;
+  background: #163023;
+  border: 1px solid #2f6e4f;
+}
+
