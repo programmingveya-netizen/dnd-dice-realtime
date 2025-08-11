@@ -21,18 +21,19 @@
     </div>
   </header>
 
-  <main class="wrap">
+<main class="wrap twoCols">
+  <div class="col mainCol">
     <section class="roller card">
       <h2>Hod kostkou</h2>
       <div class="grid">
         <label>Kostka
           <select id="sidesSelect">
             <option value="4">d4</option>
-            <option value="6" selected>d6</option>
+            <option value="6">d6</option>
             <option value="8">d8</option>
             <option value="10">d10</option>
             <option value="12">d12</option>
-            <option value="20">d20</option>
+            <option value="20" selected>d20</option>
             <option value="100">d100</option>
           </select>
         </label>
@@ -49,17 +50,21 @@
       <p class="hint">Tip: sdílej odkaz na stůl, ať házíte společně.</p>
     </section>
 
-    <!-- 3D SCÉNA -->
+    <!-- 3D scéna -->
     <section class="card">
       <h2>3D kostky</h2>
       <div id="dice3d"></div>
     </section>
+  </div>
 
-    <section class="feed card">
+  <aside class="col sideCol">
+    <section class="feed card sticky">
       <h2>Výsledky</h2>
       <div id="feed" class="feedList" aria-live="polite"></div>
     </section>
-  </main>
+  </aside>
+</main>
+
 
   <footer class="foot">Server hází kostky, takže výsledek je pro všechny stejný. ✨</footer>
 
