@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // --- Pomocné: loguj do feedu; když chybí #feed, pišeme do body ---
+  // --- Logování do "Výsledky" (fallback do body, ať vždy něco vidíš) ---
   let feed = document.getElementById('feed');
   function logToFeed(text) {
     const row = document.createElement('div');
@@ -8,23 +8,19 @@ document.addEventListener('DOMContentLoaded', () => {
     meta.className = 'meta sys';
     meta.textContent = new Date().toLocaleTimeString() + ' · ' + text;
     row.appendChild(meta);
-    (feed || document.body).appendChild(row);  // fallback do body
+    (feed || document.body).appendChild(row);
     try { (feed || document.body).scrollTop = (feed || document.body).scrollHeight; } catch {}
   }
-
   window.addEventListener('error', (e) => logToFeed('Chyba: ' + (e.message || e)));
-
   logToFeed('📦 client.js start');
 
-  // --- 3D init (bezpečné; když Three.js chybí, jen se to přeskočí) ---
+  // --- 3D init (neblokuje nic) ---
   if (window.Dice3D) {
-    try { Dice3D.init('dice3d'); logToFeed('🧊 3D inicializováno'); } 
+    try { Dice3D.init('dice3d'); logToFeed('🧊 3D inicializováno'); }
     catch (e) { logToFeed('3D chyba: ' + e.message); }
-  } else {
-    logToFeed('3D modul (dice3d.js) není k dispozici – nevadí');
   }
 
-  // --- Najdi prvky v DOM ---
+  // --- DOM prvky ---
   const $ = (id) => document.getElementById(id);
   const playerInput = $('playerInput');
   const roomInput   = $('roomInput');
@@ -35,24 +31,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const modInput    = $('modInput');
   const rollBtn     = $('rollBtn');
 
-  const missing = [playerInput, roomInput, joinBtn, shareBtn, sidesSelect, countInput, modInput, rollBtn, feed]
-    .filter(x => !x).length;
-  if (missing) {
-    logToFeed('❌ Chybí ' + missing + ' prvků v HTML (zkontroluj ID v index.html).');
-    return;
-  }
+  const missing = [playerInput, roomInput, joinBtn, shareBtn, sidesSelect, countInput, modInput, rollBtn, feed].filter(x => !x).length;
+  if (missing) { logToFeed('❌ Chybí ' + missing + ' prvků v HTML (zkontroluj ID).'); return; }
   logToFeed('✅ DOM prvky OK');
 
-  // --- Připojení k Socket.IO (NEZASTAVUJEME se ani když chybí io) ---
-  if (!window.io) {
-    logToFeed('❌ window.io chybí – soubor /socket.io/socket.io.js se nenačetl');
-  }
-  const socket = window.io ? io() : null;
+  // --- Pomoc: jisté načtení Socket.IO klienta, i kdyby ho prohlížeč/rozšíření nechtěl načíst ---
+  function ensureSocketIO() {
+    return new Promise((resolve) => {
+      if (window.io) return resolve(true);
 
-  // --- Helpery ---
-  playerInput.value = localStorage.getItem('playerName') || '';
-  const params = new URLSearchParams(location.search);
-  roomInput.value = params.get('room') || 'stul-1';
+      logToFeed('ℹ️ window.io chybí – zkusím dynamicky načíst /socket.io/socket.io.js');
+      const s = document.createElement('script');
+      s.src = '/socket.io/socket.io.js';
+      s.onload = () => resolve(!!window.io);
+      s.onerror = () => {
+        // poslední pokus: absolutní URL (někdy pomůže proti rozšířením)
+        const s2 = document.createElement('script');
+        s2.src = location.origin + '/socket.io/socket.io.js';
+        s2.onload = () => resolve(!!window.io);
+        s2.onerror = () => resolve(false);
+        document.head.appendChild(s2);
+      };
+      document.head.appendChild(s);
+    });
+  }
+
+  // --- Připojení + UI po zajištění Socket.IO ---
+  let socket = null;
 
   function addResultItem(res) {
     const div = document.createElement('div');
@@ -69,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const notation = document.createElement('span');
     notation.className = 'badge';
-    notation.textContent = `${res.count}d${res.sides}${res.modifier ? (res.modifier>0? ' +' : ' ') + res.modifier : ''}`;
+    notation.textContent = `${res.count}d${res.sides}` + (res.modifier ? (res.modifier>0?' +':' ') + res.modifier : '');
 
     const rollsWrap = document.createElement('span');
     const ANIM_TICKS = 12, TICK_MS = 50;
@@ -102,8 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     div.appendChild(meta);
     div.appendChild(resLine);
-    feed.appendChild(div);
-    feed.scrollTop = feed.scrollHeight;
+    (feed || document.body).appendChild(div);
+    try { (feed || document.body).scrollTop = (feed || document.body).scrollHeight; } catch {}
   }
 
   function joinRoom() {
@@ -112,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('playerName', player);
     if (socket) {
       socket.emit('join-room', { room, player });
-      logToFeed('📡 Poslán join-room: ' + room + ' (' + player + ')');
+      logToFeed(`📡 Poslán join-room: ${room} (${player})`);
     } else {
       logToFeed('❌ Nelze poslat join-room – socket není k dispozici');
     }
@@ -121,42 +126,45 @@ document.addEventListener('DOMContentLoaded', () => {
     history.replaceState(null, '', url.toString());
   }
 
-  // --- Socket události (pokud socket existuje) ---
-  if (socket) {
-    socket.on('connect', () => logToFeed('✅ Připojeno k serveru (' + socket.id + ')'));
-    socket.on('connect_error', (err) => logToFeed('⚠️ connect_error: ' + (err && err.message)));
+  ensureSocketIO().then((ok) => {
+    if (!ok) { logToFeed('❌ Nepodařilo se načíst Socket.IO klienta'); return; }
+
+    socket = io();
+    socket.on('connect',       () => logToFeed('✅ Připojeno k serveru (' + socket.id + ')'));
+    socket.on('connect_error', (e) => logToFeed('⚠️ connect_error: ' + (e && e.message)));
     socket.on('joined', ({ room, player }) => logToFeed(`✅ Připojeno ke stolu „${room}“ jako ${player}.`));
     socket.on('system', (msg) => logToFeed((msg && msg.text) || 'system'));
     socket.on('dice-result', (res) => {
       addResultItem(res);
-      if (window.Dice3D) {
-        try { Dice3D.roll(res.sides, res.rolls); } catch (e) { logToFeed('3D roll chyba: ' + e.message); }
-      }
+      if (window.Dice3D) { try { Dice3D.roll(res.sides, res.rolls); } catch (e) { logToFeed('3D roll chyba: ' + e.message); } }
     });
-  }
 
-  // --- Ovládání UI ---
-  joinBtn.addEventListener('click', joinRoom);
-  playerInput.addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
-  roomInput.addEventListener('keydown',  e => { if (e.key === 'Enter') joinRoom(); });
+    // UI handlers až když máme socket
+    joinBtn.addEventListener('click', joinRoom);
+    playerInput.addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
+    roomInput.addEventListener('keydown',  e => { if (e.key === 'Enter') joinRoom(); });
 
-  shareBtn.addEventListener('click', async () => {
-    const url = new URL(location.href);
-    url.searchParams.set('room', (roomInput.value || 'stul-1').trim());
-    try { await navigator.clipboard.writeText(url.toString()); logToFeed('🔗 Odkaz zkopírován'); }
-    catch { logToFeed('⚠️ Nepodařilo se zkopírovat odkaz'); }
+    shareBtn.addEventListener('click', async () => {
+      const url = new URL(location.href);
+      url.searchParams.set('room', (roomInput.value || 'stul-1').trim());
+      try { await navigator.clipboard.writeText(url.toString()); logToFeed('🔗 Odkaz zkopírován'); }
+      catch { logToFeed('⚠️ Nepodařilo se zkopírovat odkaz'); }
+    });
+
+    rollBtn.addEventListener('click', () => {
+      const sides = parseInt(sidesSelect.value, 10);
+      const count = Math.min(10, Math.max(1, parseInt(countInput.value || '1', 10)));
+      const modifier = Math.min(99, Math.max(-99, parseInt(modInput.value || '0', 10)));
+      socket.emit('roll-dice', { sides, count, modifier });
+      logToFeed(`🎯 roll-dice odeslán (${count}d${sides}${modifier? (modifier>0?'+':'')+modifier : ''})`);
+    });
+
+    // Auto-join
+    // Předvyplň hráče + room z localStorage / URL:
+    playerInput.value = localStorage.getItem('playerName') || playerInput.value || '';
+    const params = new URLSearchParams(location.search);
+    roomInput.value = params.get('room') || roomInput.value || 'stul-1';
+    joinRoom();
+    logToFeed('▶️ joinRoom() spuštěn (auto)');
   });
-
-  rollBtn.addEventListener('click', () => {
-    if (!socket) { logToFeed('❌ Nelze hodit – socket neexistuje'); return; }
-    const sides = parseInt(sidesSelect.value, 10);
-    const count = Math.min(10, Math.max(1, parseInt(countInput.value || '1', 10)));
-    const modifier = Math.min(99, Math.max(-99, parseInt(modInput.value || '0', 10)));
-    socket.emit('roll-dice', { sides, count, modifier });
-    logToFeed(`🎯 roll-dice odeslán (${count}d${sides}${modifier? (modifier>0?'+':'')+modifier : ''})`);
-  });
-
-  // --- Auto-join po načtení ---
-  joinRoom();
-  logToFeed('▶️ joinRoom() spuštěn (auto)');
 });
