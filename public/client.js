@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // --- Logování do "Výsledky" (fallback do body, ať vždy něco vidíš) ---
+  // ------------------------------
+  // 0) Logování do "Výsledky"
+  // ------------------------------
   let feed = document.getElementById('feed');
   function logToFeed(text) {
     const row = document.createElement('div');
@@ -14,13 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('error', (e) => logToFeed('Chyba: ' + (e.message || e)));
   logToFeed('📦 client.js start');
 
-  // --- 3D init (neblokuje nic) ---
-  if (window.Dice3D) {
-    try { Dice3D.init('dice3d'); logToFeed('🧊 3D inicializováno'); }
-    catch (e) { logToFeed('3D chyba: ' + e.message); }
-  }
-
-  // --- DOM prvky ---
+  // ------------------------------
+  // 1) DOM prvky
+  // ------------------------------
   const $ = (id) => document.getElementById(id);
   const playerInput = $('playerInput');
   const roomInput   = $('roomInput');
@@ -30,29 +28,118 @@ document.addEventListener('DOMContentLoaded', () => {
   const countInput  = $('countInput');
   const modInput    = $('modInput');
   const rollBtn     = $('rollBtn');
-  const advBtn    = $('advBtn');
-const disBtn    = $('disBtn');
-const muteBtn   = $('muteBtn');
-const exportBtn = $('exportBtn');
 
-const HISTORY = []; // budeme plnit pro CSV export
+  // volitelná tlačítka (pokud v HTML nejsou, budou null a nic se neděje)
+  const advBtn      = $('advBtn');
+  const disBtn      = $('disBtn');
+  const muteBtn     = $('muteBtn');
+  const exportBtn   = $('exportBtn');
 
-
-  const missing = [playerInput, roomInput, joinBtn, shareBtn, sidesSelect, countInput, modInput, rollBtn, feed].filter(x => !x).length;
+  const missing = [playerInput, roomInput, joinBtn, shareBtn, sidesSelect, countInput, modInput, rollBtn, feed]
+    .filter(x => !x).length;
   if (missing) { logToFeed('❌ Chybí ' + missing + ' prvků v HTML (zkontroluj ID).'); return; }
   logToFeed('✅ DOM prvky OK');
 
-  // --- Pomoc: jisté načtení Socket.IO klienta, i kdyby ho prohlížeč/rozšíření nechtěl načíst ---
+  // ------------------------------
+  // 2) 3D init (neblokuje nic)
+  // ------------------------------
+  if (window.Dice3D) {
+    try { Dice3D.init('dice3d'); logToFeed('🧊 3D inicializováno'); }
+    catch (e) { logToFeed('3D chyba: ' + e.message); }
+  }
+
+  // ------------------------------
+  // 3) WebAudio (žádný soubor, žádné stahování)
+  // ------------------------------
+  let audioCtx, masterGain, audioReady = false;
+  let muted = (localStorage.getItem('muted') === '1');
+
+  function initAudio() {
+    if (audioReady) return;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return; // starý prohlížeč
+    audioCtx = new Ctx();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = muted ? 0 : 0.8;
+    masterGain.connect(audioCtx.destination);
+    audioReady = true;
+  }
+  // povolíme až po prvním kliknutí uživatele (autoplay policy)
+  window.addEventListener('click', () => {
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    initAudio();
+  }, { once: true });
+
+  function updateMuteUI(){
+    if (!muteBtn) return;
+    muteBtn.textContent = muted ? '🔇 Zvuk' : '🔊 Zvuk';
+    if (masterGain) masterGain.gain.value = muted ? 0 : 0.8;
+  }
+  if (muteBtn) {
+    muteBtn.addEventListener('click', () => {
+      muted = !muted; localStorage.setItem('muted', muted ? '1' : '0'); updateMuteUI();
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      initAudio();
+    });
+    updateMuteUI();
+  }
+
+  // krátký „dice roll“: šum + pár ťuknutí
+  function playRollSound() {
+    if (muted) return;
+    initAudio();
+    if (!audioCtx) return;
+
+    const ctx = audioCtx;
+    const now = ctx.currentTime;
+
+    // decaying noise (chřestění)
+    const dur = 0.55;
+    const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      const t = i / data.length;
+      data[i] = (Math.random() * 2 - 1) * (1 - t) * 0.6;
+    }
+    const noise = ctx.createBufferSource(); noise.buffer = buffer;
+
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 800; bp.Q.value = 0.7;
+    const lpf = ctx.createBiquadFilter(); lpf.type = 'lowpass'; lpf.frequency.value = 2500;
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.6, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+    noise.connect(bp); bp.connect(lpf); lpf.connect(g); g.connect(masterGain);
+    noise.start(now); noise.stop(now + dur);
+
+    // 2–3 rychlá "ťuknutí"
+    const taps = 3;
+    for (let j = 0; j < taps; j++) {
+      const t = now + 0.08 + j * 0.09 + Math.random() * 0.03;
+      const o = ctx.createOscillator(); o.type = 'triangle';
+      const og = ctx.createGain();
+      o.frequency.setValueAtTime(360 - j * 80 + Math.random() * 40, t);
+      og.gain.setValueAtTime(0.0001, t);
+      og.gain.exponentialRampToValueAtTime(0.22, t + 0.01);
+      og.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+      o.connect(og); og.connect(masterGain);
+      o.start(t); o.stop(t + 0.08);
+    }
+  }
+
+  // ------------------------------
+  // 4) Pomoc: načtení Socket.IO (fallback)
+  // ------------------------------
   function ensureSocketIO() {
     return new Promise((resolve) => {
       if (window.io) return resolve(true);
-
-      logToFeed('ℹ️ window.io chybí – zkusím dynamicky načíst /socket.io/socket.io.js');
+      logToFeed('ℹ️ window.io chybí – zkusím načíst /socket.io/socket.io.js');
       const s = document.createElement('script');
       s.src = '/socket.io/socket.io.js';
       s.onload = () => resolve(!!window.io);
       s.onerror = () => {
-        // poslední pokus: absolutní URL (někdy pomůže proti rozšířením)
         const s2 = document.createElement('script');
         s2.src = location.origin + '/socket.io/socket.io.js';
         s2.onload = () => resolve(!!window.io);
@@ -63,8 +150,18 @@ const HISTORY = []; // budeme plnit pro CSV export
     });
   }
 
-  // --- Připojení + UI po zajištění Socket.IO ---
-  let socket = null;
+  // ------------------------------
+  // 5) Notace + render řádku výsledku
+  // ------------------------------
+  function formatNotation(count, sides, mod, mode) {
+    const kind = (mode === 'adv' && sides === 20) ? 'adv'
+               : (mode === 'dis' && sides === 20) ? 'dis'
+               : '';
+    const base = kind ? `${count}×(d${sides} ${kind})` : `${count}d${sides}`;
+    if (!mod || mod === 0) return base;
+    const sign = mod > 0 ? '+' : '';
+    return `${base} ${sign}${mod}`;
+  }
 
   function addResultItem(res) {
     const div = document.createElement('div');
@@ -103,15 +200,6 @@ const HISTORY = []; // budeme plnit pro CSV export
       }, TICK_MS);
       rollsWrap.appendChild(d);
     });
-function formatNotation(count, sides, mod, mode) {
-  const kind = (mode === 'adv' && sides === 20) ? 'adv'
-             : (mode === 'dis' && sides === 20) ? 'dis'
-             : '';
-  const base = kind ? `${count}×(d${sides} ${kind})` : `${count}d${sides}`;
-  if (!mod || mod === 0) return base;
-  const sign = mod > 0 ? '+' : '';
-  return `${base} ${sign}${mod}`;
-}
 
     const total = document.createElement('span');
     total.className = 'total';
@@ -126,6 +214,29 @@ function formatNotation(count, sides, mod, mode) {
     (feed || document.body).appendChild(div);
     try { (feed || document.body).scrollTop = (feed || document.body).scrollHeight; } catch {}
   }
+
+  // historie pro export
+  const HISTORY = [];
+  function exportCSV() {
+    if (!HISTORY.length) { logToFeed('ℹ️ Zatím není co exportovat.'); return; }
+    const header = ['time','player','room','sides','count','modifier','mode','rolls','subtotal','total'];
+    const rows = HISTORY.map(r => [
+      new Date(r.ts).toISOString(),
+      r.player, r.room, r.sides, r.count, r.modifier, r.mode, `"${r.rolls}"`, r.subtotal, r.total
+    ]);
+    const csv = [header.join(','), ...rows.map(a => a.join(','))].join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'dice-history.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+  if (exportBtn) exportBtn.addEventListener('click', exportCSV);
+
+  // ------------------------------
+  // 6) Socket + UI
+  // ------------------------------
+  let socket = null;
 
   function joinRoom() {
     const player = (playerInput.value || '').trim() || 'Hráč';
@@ -142,6 +253,14 @@ function formatNotation(count, sides, mod, mode) {
     history.replaceState(null, '', url.toString());
   }
 
+  function sendRoll(mode) {
+    const sides = parseInt(sidesSelect.value, 10);
+    const count = Math.min(10, Math.max(1, parseInt(countInput.value || '1', 10)));
+    const modifier = Math.min(99, Math.max(-99, parseInt(modInput.value || '0', 10)));
+    socket.emit('roll-dice', { sides, count, modifier, mode });
+    logToFeed(`🎯 roll-dice odeslán (${count}d${sides}${modifier? (modifier>0?'+':'')+modifier : ''}${mode ? ' '+mode : ''})`);
+  }
+
   ensureSocketIO().then((ok) => {
     if (!ok) { logToFeed('❌ Nepodařilo se načíst Socket.IO klienta'); return; }
 
@@ -151,11 +270,22 @@ function formatNotation(count, sides, mod, mode) {
     socket.on('joined', ({ room, player }) => logToFeed(`✅ Připojeno ke stolu „${room}“ jako ${player}.`));
     socket.on('system', (msg) => logToFeed((msg && msg.text) || 'system'));
     socket.on('dice-result', (res) => {
+      // >>> ZVUK ZDE <<<
+      playRollSound();
+
+      // uložit pro export
+      HISTORY.push({
+        ts: res.ts, player: res.player, room: res.room,
+        sides: res.sides, count: res.count, modifier: res.modifier, mode: res.mode,
+        rolls: res.rolls.join(' '), subtotal: res.subtotal, total: res.total
+      });
+
+      // vykreslit do feedu + 3D
       addResultItem(res);
       if (window.Dice3D) { try { Dice3D.roll(res.sides, res.rolls); } catch (e) { logToFeed('3D roll chyba: ' + e.message); } }
     });
 
-    // UI handlers až když máme socket
+    // UI handlers
     joinBtn.addEventListener('click', joinRoom);
     playerInput.addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
     roomInput.addEventListener('keydown',  e => { if (e.key === 'Enter') joinRoom(); });
@@ -167,16 +297,11 @@ function formatNotation(count, sides, mod, mode) {
       catch { logToFeed('⚠️ Nepodařilo se zkopírovat odkaz'); }
     });
 
-    rollBtn.addEventListener('click', () => {
-      const sides = parseInt(sidesSelect.value, 10);
-      const count = Math.min(10, Math.max(1, parseInt(countInput.value || '1', 10)));
-      const modifier = Math.min(99, Math.max(-99, parseInt(modInput.value || '0', 10)));
-      socket.emit('roll-dice', { sides, count, modifier });
-      logToFeed(`🎯 roll-dice odeslán (${count}d${sides}${modifier? (modifier>0?'+':'')+modifier : ''})`);
-    });
+    rollBtn.addEventListener('click', () => sendRoll(undefined));
+    if (advBtn) advBtn.addEventListener('click', () => { sidesSelect.value = '20'; sendRoll('adv'); });
+    if (disBtn) disBtn.addEventListener('click', () => { sidesSelect.value = '20'; sendRoll('dis'); });
 
     // Auto-join
-    // Předvyplň hráče + room z localStorage / URL:
     playerInput.value = localStorage.getItem('playerName') || playerInput.value || '';
     const params = new URLSearchParams(location.search);
     roomInput.value = params.get('room') || roomInput.value || 'stul-1';
