@@ -72,7 +72,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="client.js"></script>
 
-  <!-- Mini upozornění, kdyby Socket.IO chyběl -->
+  <!-- Upozornění, kdyby Socket.IO chyběl -->
   <script>
     if (!window.io) {
       document.body.insertAdjacentHTML(
@@ -81,5 +81,10 @@
       );
     }
   </script>
+  <noscript>
+    <div style="padding:10px;background:#5b1f1f;color:#fff;text-align:center">
+      Pro tuto stránku musí být povolen JavaScript.
+    </div>
+  </noscript>
 </body>
 </html>
