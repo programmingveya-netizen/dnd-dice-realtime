@@ -40,34 +40,44 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('roll-dice', (payload) => {
-    if (!currentRoom) return;
-    let { sides, count, modifier } = payload || {};
-    sides = Number(sides);
-    count = Number(count);
-    modifier = Number(modifier) || 0;
+socket.on('roll-dice', (payload) => {
+  if (!currentRoom) return;
+  let { sides, count, modifier, mode } = payload || {};
+  sides = Number(sides);
+  count = Number(count);
+  modifier = Number(modifier) || 0;
+  mode = (mode === 'adv' || mode === 'dis') ? mode : undefined;
 
-    if (!ALLOWED_SIDES.includes(sides)) return;
-    if (!(count >= 1 && count <= 10)) return;
-    if (!(modifier >= -99 && modifier <= 99)) modifier = 0;
+  if (!ALLOWED_SIDES.includes(sides)) return;
+  if (!(count >= 1 && count <= 10)) return;
+  if (!(modifier >= -99 && modifier <= 99)) modifier = 0;
 
-    const rolls = [];
+  const rolls = [];
+  // advantage / disadvantage (d20 only)
+  if (mode && sides === 20) {
+    for (let i = 0; i < count; i++) {
+      const a = randomInt(1, 21);
+      const b = randomInt(1, 21);
+      rolls.push(mode === 'adv' ? Math.max(a, b) : Math.min(a, b));
+    }
+  } else {
     for (let i = 0; i < count; i++) rolls.push(randomInt(1, sides + 1));
-    const subtotal = rolls.reduce((a, b) => a + b, 0);
-    const total = subtotal + modifier;
+  }
 
-    const result = {
-      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      player: playerName,
-      room: currentRoom,
-      sides, count, modifier,
-      rolls,
-      subtotal, total,
-      ts: Date.now()
-    };
+  const subtotal = rolls.reduce((a, b) => a + b, 0);
+  const total = subtotal + modifier;
 
-    io.to(currentRoom).emit('dice-result', result);
-  });
+  const result = {
+    id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    player: playerName,
+    room: currentRoom,
+    sides, count, modifier, mode: mode || 'normal',
+    rolls, subtotal, total,
+    ts: Date.now()
+  };
+
+  io.to(currentRoom).emit('dice-result', result);
+});
 
   socket.on('disconnect', () => {
     if (currentRoom && playerName) {
