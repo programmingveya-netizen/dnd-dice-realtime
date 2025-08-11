@@ -31,8 +31,8 @@ camera.lookAt(0, 0.8, 0);
       new THREE.PlaneGeometry(20, 10),
       new THREE.MeshStandardMaterial({ color: 0x0e141b, roughness: 1 })
     );
-    floor.rotation.x = -Math.PI / 2;
-floor.position.y = -0.10;  // NOVÉ – lehce sníží stůl, ať je víc místa dole
+   floor.rotation.x = -Math.PI / 2;
+floor.position.y = -0.10;  // NOVÉ – víc prostoru dole
 scene.add(floor);
 
     window.addEventListener('resize', resize);
