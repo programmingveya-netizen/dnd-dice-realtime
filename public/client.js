@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const countInput  = $('countInput');
   const modInput    = $('modInput');
   const rollBtn     = $('rollBtn');
-  const clearBtn   = $('clearBtn');
+  const clearBtn    = $('clearBtn');
 
   // volitelná tlačítka (pokud v HTML nejsou, budou null a nic se neděje)
   const advBtn      = $('advBtn');
@@ -156,7 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function ensureSocketIO() {
     return new Promise((resolve) => {
       if (window.io) return resolve(true);
-      // beze zbytečného logování – zalogujeme jen průšvih
       const s = document.createElement('script');
       s.src = '/socket.io/socket.io.js';
       s.onload = () => resolve(!!window.io);
@@ -242,7 +241,109 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // historie pro export
+  // ------------------------------
+  // 5.5) SCOREBOARD (poslední hod + průměr)
+  // ------------------------------
+  const PLAYER_STATS = new Map(); // jméno -> { count, sumTotals, last }
+  let scoreboardEl = document.getElementById('scoreboard');
+
+  function ensureScoreboard() {
+    if (scoreboardEl) return;
+    // vytvoř sekci nad "Výsledky"
+    const feedSection = (feed && feed.closest('section')) || null;
+    const sec = document.createElement('section');
+    sec.className = 'scoreboard card';
+    sec.innerHTML = `
+      <h2>Přehled hráčů</h2>
+      <div id="scoreboard" class="scoreGrid"></div>
+    `;
+    if (feedSection && feedSection.parentNode) {
+      feedSection.parentNode.insertBefore(sec, feedSection);
+    } else {
+      document.querySelector('main')?.prepend(sec);
+    }
+    scoreboardEl = sec.querySelector('#scoreboard');
+  }
+
+  function updateStatsFromResult(res) {
+    const s = PLAYER_STATS.get(res.player) || { count: 0, sumTotals: 0, last: null };
+    s.count += 1;
+    s.sumTotals += Number(res.total) || 0;
+    s.last = {
+      ts: res.ts,
+      sides: res.sides,
+      rolls: Array.isArray(res.rolls) ? res.rolls.slice() : [],
+      total: res.total,
+      notation: (function () {
+        try { return formatNotation(res.count, res.sides, res.modifier, res.mode); }
+        catch { return `${res.count}d${res.sides}${res.modifier? (res.modifier>0?'+':'')+res.modifier:''}`; }
+      })()
+    };
+    PLAYER_STATS.set(res.player, s);
+  }
+
+  function renderScoreboard() {
+    ensureScoreboard();
+    if (!scoreboardEl) return;
+
+    const items = Array.from(PLAYER_STATS.entries())
+      .filter(([_, s]) => !!s.last)
+      .sort((a, b) => b[1].last.ts - a[1].last.ts); // nejnovější hráč první
+
+    const frag = document.createDocumentFragment();
+    items.forEach(([name, s]) => {
+      const avg = (s.sumTotals / s.count).toFixed(1);
+
+      const card = document.createElement('div');
+      card.className = 'scCard';
+
+      const header = document.createElement('div');
+      header.className = 'scHeader';
+      const title = document.createElement('div'); title.className = 'scName'; title.textContent = name;
+      const avgEl = document.createElement('div'); avgEl.className = 'scAvg';  avgEl.textContent = `Ø ${avg}`;
+      header.appendChild(title); header.appendChild(avgEl);
+
+      const last = document.createElement('div');
+      last.className = 'scLast';
+
+      const notation = document.createElement('span');
+      notation.className = 'badge';
+      notation.textContent = s.last.notation;
+
+      const diceWrap = document.createElement('span');
+      diceWrap.className = 'scDice';
+      const isD20 = (s.last.sides === 20);
+      s.last.rolls.forEach(v => {
+        const d = document.createElement('span');
+        d.className = 'scDie';
+        d.textContent = v;
+        if (isD20) {
+          if (v === 20) d.classList.add('nat20');
+          if (v === 1)  d.classList.add('nat1');
+        }
+        diceWrap.appendChild(d);
+      });
+
+      const total = document.createElement('span');
+      total.className = 'scTotal';
+      total.textContent = `Celkem: ${s.last.total}`;
+
+      last.appendChild(notation);
+      last.appendChild(diceWrap);
+      last.appendChild(total);
+
+      card.appendChild(header);
+      card.appendChild(last);
+      frag.appendChild(card);
+    });
+
+    scoreboardEl.innerHTML = '';
+    scoreboardEl.appendChild(frag);
+  }
+
+  // ------------------------------
+  // 6) Historie + export + Clear
+  // ------------------------------
   const HISTORY = [];
   function exportCSV() {
     if (!HISTORY.length) { logToFeed('ℹ️ Zatím není co exportovat.'); return; }
@@ -259,19 +360,20 @@ document.addEventListener('DOMContentLoaded', () => {
     URL.revokeObjectURL(url);
   }
   if (exportBtn) exportBtn.addEventListener('click', exportCSV);
-function clearAll() {
-  // vyprázdni historii
-  HISTORY.length = 0;
-  // vyprázdni feed
-  if (feed) feed.innerHTML = '';
-  // smaž 3D kostky (pokud Dice3D.clear existuje)
-  if (window.Dice3D && Dice3D.clear) Dice3D.clear();
-}
 
-if (clearBtn) clearBtn.addEventListener('click', clearAll);
+  function clearAll() {
+    // vyprázdni historii
+    HISTORY.length = 0;
+    // vyprázdni feed
+    if (feed) feed.innerHTML = '';
+    // smaž 3D kostky (pokud Dice3D.clear existuje)
+    if (window.Dice3D && Dice3D.clear) Dice3D.clear();
+    // scoreboard necháváme (ať zůstává průměr a poslední hody za session)
+  }
+  if (clearBtn) clearBtn.addEventListener('click', clearAll);
 
   // ------------------------------
-  // 6) Socket + UI
+  // 7) Socket + UI
   // ------------------------------
   let socket = null;
 
@@ -317,9 +419,15 @@ if (clearBtn) clearBtn.addEventListener('click', clearAll);
         rolls: res.rolls.join(' '), subtotal: res.subtotal, total: res.total
       });
 
-      // vykreslit do feedu + 3D
+      // feed + 3D
       addResultItem(res);
-      if (window.Dice3D) { try { Dice3D.roll(res.sides, res.rolls); } catch (e) { logToFeed('3D roll chyba: ' + e.message); } }
+      if (window.Dice3D) {
+        try { Dice3D.roll(res.sides, res.rolls); } catch (e) { logToFeed('3D roll chyba: ' + e.message); }
+      }
+
+      // scoreboard
+      updateStatsFromResult(res);
+      renderScoreboard();
     });
 
     // UI handlers
