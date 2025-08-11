@@ -46,3 +46,12 @@ button:hover { filter: brightness(1.08); }
 .total { padding: .2rem .45rem; border-radius: .5rem; background: #163023; border: 1px solid #2f6e4f; }
 .sys { color: var(--muted); font-style: italic; }
 @media (max-width: 800px) { .grid { grid-template-columns: 1fr 1fr; } }
+/* --- Dice animation --- */
+@keyframes dice-wiggle {
+  0% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(6deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+.die.rolling { animation: dice-wiggle 0.6s ease-in-out infinite; opacity: .9; }
+.die.nat20 { background: #173b26; border-color: #2f6e4f; font-weight: 700; }
+.die.nat1  { background: #3b1a1a; border-color: #8a3c3c; font-weight: 700; }
