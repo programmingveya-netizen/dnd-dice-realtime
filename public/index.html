@@ -61,3 +61,11 @@
   <script src="client.js"></script>
 </body>
 </html>
+<script>
+  if (!window.io) {
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<div style="position:fixed;left:0;right:0;bottom:0;padding:10px;background:#5b1f1f;color:#fff;text-align:center;z-index:9999">⚠️ Realtime knihovna se nenačetla. Nasazuj jako <b>Web Service</b> se startem <code>npm start</code>, ne jako Static Site.</div>'
+    );
+  }
+</script>
