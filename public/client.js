@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ------------------------------
   // 0) Logování do "Výsledky" (nejnovější nahoře, šum odfiltrovaný)
   // ------------------------------
-  let feed = document.getElementById('feed');
+  const feed = document.getElementById('feed');
 
   function logToFeed(text) {
     // Hlášky, které nechceme ve feedu zobrazovat (šum):
@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
     row.appendChild(meta);
 
     if (feed) {
-      // vlož NAHOŘE a nech scrollbar u horního okraje
       feed.insertBefore(row, feed.firstChild || null);
       feed.scrollTop = 0;
     } else {
@@ -44,16 +43,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const roomInput   = $('roomInput');
   const joinBtn     = $('joinBtn');
   const shareBtn    = $('shareBtn');
+
   const sidesSelect = $('sidesSelect');
   const countInput  = $('countInput');
   const modInput    = $('modInput');
-  const rollBtn     = $('rollBtn');
-  const clearBtn    = $('clearBtn');
 
-  // volitelná tlačítka (pokud v HTML nejsou, budou null a nic se neděje)
+  const rollBtn     = $('rollBtn');
   const advBtn      = $('advBtn');
   const disBtn      = $('disBtn');
-  const muteBtn     = $('muteBtn');
+
+  const muteBtn     = $('muteBtn');   // v action baru
+  const clearBtn    = $('clearBtn');
   const exportBtn   = $('exportBtn');
 
   const missing = [playerInput, roomInput, joinBtn, shareBtn, sidesSelect, countInput, modInput, rollBtn, feed]
@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateMuteUI(){
     if (!muteBtn) return;
     muteBtn.textContent = muted ? '🔇 Zvuk' : '🔊 Zvuk';
+    muteBtn.classList.toggle('active', !muted === false); // jen pro případ motivů
     if (masterGain) masterGain.gain.value = muted ? 0 : 0.8;
   }
   if (muteBtn) {
@@ -232,7 +233,6 @@ document.addEventListener('DOMContentLoaded', () => {
     div.appendChild(meta);
     div.appendChild(resLine);
 
-    // >>> NEJNOVĚJŠÍ NAHOŘE <<<
     if (feed) {
       feed.insertBefore(div, feed.firstChild || null);
       feed.scrollTop = 0;
@@ -249,19 +249,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function ensureScoreboard() {
     if (scoreboardEl) return;
-    // vytvoř sekci nad "Výsledky"
-    const feedSection = (feed && feed.closest('section')) || null;
+    // vlož před pravý sticky panel s výsledky
+    const resultsAside = feed?.closest('.feed.card.sticky') || null;
     const sec = document.createElement('section');
-    sec.className = 'scoreboard card';
+    sec.className = 'scoreboard card span-2';
     sec.innerHTML = `
       <h2>Přehled hráčů</h2>
       <div id="scoreboard" class="scoreGrid"></div>
     `;
-    if (feedSection && feedSection.parentNode) {
-      feedSection.parentNode.insertBefore(sec, feedSection);
-    } else {
-      document.querySelector('main')?.prepend(sec);
-    }
+    const targetParent = resultsAside?.parentNode || document.querySelector('main');
+    if (targetParent) targetParent.insertBefore(sec, resultsAside || targetParent.firstChild);
     scoreboardEl = sec.querySelector('#scoreboard');
   }
 
@@ -362,13 +359,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (exportBtn) exportBtn.addEventListener('click', exportCSV);
 
   function clearAll() {
-    // vyprázdni historii
     HISTORY.length = 0;
-    // vyprázdni feed
     if (feed) feed.innerHTML = '';
-    // smaž 3D kostky (pokud Dice3D.clear existuje)
     if (window.Dice3D && Dice3D.clear) Dice3D.clear();
-    // scoreboard necháváme (ať zůstává průměr a poslední hody za session)
+    // scoreboard necháváme (průměry/poslední hody za celou session)
   }
   if (clearBtn) clearBtn.addEventListener('click', clearAll);
 
@@ -408,6 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('connect_error', (e) => logToFeed('⚠️ connect_error: ' + (e && e.message)));
     socket.on('joined', ({ room, player }) => logToFeed(`✅ Připojeno ke stolu „${room}“ jako ${player}.`));
     socket.on('system', (msg) => logToFeed((msg && msg.text) || 'system'));
+
     socket.on('dice-result', (res) => {
       // zvuk
       playRollSound();
