@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const countInput  = $('countInput');
   const modInput    = $('modInput');
   const rollBtn     = $('rollBtn');
+  const clearBtn   = $('clearBtn');
 
   // volitelná tlačítka (pokud v HTML nejsou, budou null a nic se neděje)
   const advBtn      = $('advBtn');
@@ -258,6 +259,16 @@ document.addEventListener('DOMContentLoaded', () => {
     URL.revokeObjectURL(url);
   }
   if (exportBtn) exportBtn.addEventListener('click', exportCSV);
+function clearAll() {
+  // vyprázdni historii
+  HISTORY.length = 0;
+  // vyprázdni feed
+  if (feed) feed.innerHTML = '';
+  // smaž 3D kostky (pokud Dice3D.clear existuje)
+  if (window.Dice3D && Dice3D.clear) Dice3D.clear();
+}
+
+if (clearBtn) clearBtn.addEventListener('click', clearAll);
 
   // ------------------------------
   // 6) Socket + UI
