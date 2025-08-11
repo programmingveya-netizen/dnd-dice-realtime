@@ -65,7 +65,7 @@ button:hover { filter: brightness(1.08); }
   width: 100%;
   aspect-ratio: 16 / 9;
   min-height: 320px; /* fallback, když by aspect-ratio nezabralo */
-  background: radial-gradient(800px 400px at 30% -10%, #0e141b, #0b0f14);
+  background: #0b0f14;
   border: 1px solid #1e2a37;
   border-radius: .9rem;
   overflow: hidden;
