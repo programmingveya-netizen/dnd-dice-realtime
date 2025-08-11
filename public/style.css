@@ -93,3 +93,11 @@ button:hover { filter: brightness(1.08); }
   .wrap.twoCols { grid-template-columns: 1fr; }
   .sideCol .sticky { position: static; max-height: none; }
 }
+.actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: flex-end; }
+#advBtn, #disBtn, #muteBtn, #exportBtn {
+  background: #16202b; border: 1px solid #2b3b4f; padding: .55rem .7rem; border-radius: .6rem;
+}
+#advBtn { border-color: #3f6e3a; }
+#disBtn { border-color: #6e3a3a; }
+#muteBtn.active { background: #1f2f20; border-color: #2f6e4f; }
+
