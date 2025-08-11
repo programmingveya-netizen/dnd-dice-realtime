@@ -8,32 +8,39 @@ window.Dice3D = (() => {
     container = document.getElementById(containerId);
     if (!container || !window.THREE) return;
 
+    // renderer – fyzikálně korektní světla + jemný tonemapping (hezčí „metal“)
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
-renderer.setClearColor(0x0b0f14, 1);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    renderer.setClearColor(0x0b0f14, 1);
+    renderer.physicallyCorrectLights = true;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-// o něco výš a dál, ať není spodek oříznutý
-camera.position.set(0, 3.2, 5.2);
-camera.lookAt(0, 0.8, 0);
-
+    // o něco výš a dál, ať není spodek oříznutý
+    camera.position.set(0, 3.2, 5.2);
+    camera.lookAt(0, 0.8, 0);
 
     // světla
-    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-    const d1 = new THREE.DirectionalLight(0xffffff, 1.0); d1.position.set(4, 6, 5); scene.add(d1);
-    const d2 = new THREE.DirectionalLight(0xffffff, 0.35); d2.position.set(-3, 3, -2); scene.add(d2);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const d1 = new THREE.DirectionalLight(0xffffff, 1.0);
+    d1.position.set(4, 6, 5);
+    scene.add(d1);
 
-    // „podlaha“
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(20, 10),
-      new THREE.MeshStandardMaterial({ color: 0x0e141b, roughness: 1 })
-    );
-   floor.rotation.x = -Math.PI / 2;
-floor.position.y = -0.10;  // NOVÉ – víc prostoru dole
-scene.add(floor);
+    const d2 = new THREE.DirectionalLight(0xffffff, 0.4);
+    d2.position.set(-3, 3, -2);
+    scene.add(d2);
+
+    // malý rim light pro pěkné zvýraznění hran
+    const rim = new THREE.DirectionalLight(0xffffff, 0.35);
+    rim.position.set(-4, 5, -3);
+    scene.add(rim);
+
+    // ⚠️ ZRUŠENO: „podlaha“ – dělala nevzhlednou vodorovnou čáru
+    // (necháváme jen jednolité pozadí rendereru)
 
     window.addEventListener('resize', resize);
     resize();
@@ -50,71 +57,80 @@ scene.add(floor);
   }
 
   function palette(sides) {
-  return ({
-    4:  0x27262b, // obsidian d4
-    6:  0xc79b3b, // brass d6
-    8:  0x5aa3c6, // sapphire d8
-    10: 0x8a4baf, // amethyst d10
-    12: 0x4e7c3a, // jade d12
-    20: 0xb83c3c, // crimson d20
-    100:0x8e8e8e // steel d100
-  })[sides] || 0xbad7ff;
-}
+    return ({
+      4:  0x27262b, // obsidian d4
+      6:  0xc79b3b, // brass d6
+      8:  0x5aa3c6, // sapphire d8
+      10: 0x8a4baf, // amethyst d10
+      12: 0x4e7c3a, // jade d12
+      20: 0xb83c3c, // crimson d20
+      100:0x8e8e8e  // steel d100
+    })[sides] || 0xbad7ff;
+  }
 
   function geometryForSides(sides) {
     const r = 0.6;
     switch (sides) {
       case 4:  return new THREE.TetrahedronGeometry(r, 0);
-      case 6:  return new THREE.BoxGeometry(r * 1.2, r * 1.2, r * 1.2);
+      case 6:  return new THREE.BoxGeometry(r * 1.2, r * 1.2, r * 1.2, 2, 2, 2); // trocha segmentů = hezčí světlo
       case 8:  return new THREE.OctahedronGeometry(r, 0);
       case 10: return new THREE.CylinderGeometry(r * 0.9, r * 0.9, r * 1.2, 10, 1, true); // přiblížení
       case 12: return new THREE.DodecahedronGeometry(r, 0);
       case 20: return new THREE.IcosahedronGeometry(r, 0);
       case 100:return new THREE.CylinderGeometry(r * 0.9, r * 0.9, r * 1.2, 10, 1, true); // přiblížení
-      default: return new THREE.BoxGeometry(r * 1.2, r * 1.2, r * 1.2);
+      default: return new THREE.BoxGeometry(r * 1.2, r * 1.2, r * 1.2, 2, 2, 2);
     }
   }
 
- function createTextSprite(text) {
-  const size = 128;
-  const cnv = document.createElement('canvas'); cnv.width = size; cnv.height = size;
-  const ctx = cnv.getContext('2d');
+  function createTextSprite(text) {
+    const size = 128;
+    const cnv = document.createElement('canvas'); cnv.width = size; cnv.height = size;
+    const ctx = cnv.getContext('2d');
 
-  // podklad pod číslem (tmavý kotouč pro čitelnost)
-  ctx.fillStyle = 'rgba(0,0,0,.55)';
-  ctx.beginPath(); ctx.arc(size/2, size/2, size/2-8, 0, Math.PI*2); ctx.fill();
+    // podklad pod číslem (tmavý kotouč pro čitelnost)
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.beginPath(); ctx.arc(size/2, size/2, size/2-8, 0, Math.PI*2); ctx.fill();
 
-  // číslo – „fantasy“ serif + jemný obrys
-  ctx.fillStyle = '#f2eadd';
-  ctx.font = '700 72px "Times New Roman", Georgia, serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,0,0,.55)';
-  ctx.strokeText(String(text), size/2, size/2);
-  ctx.fillText(String(text), size/2, size/2);
+    // číslo – „fantasy“ serif + jemný obrys
+    ctx.fillStyle = '#f2eadd';
+    ctx.font = '700 72px "Times New Roman", Georgia, serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,0,0,.55)';
+    ctx.strokeText(String(text), size/2, size/2);
+    ctx.fillText(String(text), size/2, size/2);
 
-  const tex = new THREE.CanvasTexture(cnv); tex.anisotropy = 2;
+    const tex = new THREE.CanvasTexture(cnv); tex.anisotropy = 2;
 
-  // TRIK: čísla vždy navrch
-  const mat = new THREE.SpriteMaterial({
-    map: tex, transparent: true, depthTest: false, depthWrite: false
-  });
-  const spr = new THREE.Sprite(mat);
-  spr.renderOrder = 999;   // vysoká priorita při kreslení
-  spr.scale.set(0.65, 0.65, 1);
-  return spr;
-}
+    // TRIK: čísla vždy navrch
+    const mat = new THREE.SpriteMaterial({
+      map: tex, transparent: true, depthTest: false, depthWrite: false
+    });
+    const spr = new THREE.Sprite(mat);
+    spr.renderOrder = 999;   // vysoká priorita při kreslení
+    spr.scale.set(0.65, 0.65, 1);
+    return spr;
+  }
 
   function spawnDie(sides, value, i, total) {
     const geom = geometryForSides(sides);
-    const mat = new THREE.MeshStandardMaterial({
-      color: palette(sides), roughness: 0.5, metalness: 0.25, envMapIntensity: 0.3
+
+    // ✨ metalický vzhled + clearcoat
+    const mat = new THREE.MeshPhysicalMaterial({
+      color: palette(sides),
+      metalness: 0.85,
+      roughness: 0.25,
+      clearcoat: 0.6,
+      clearcoatRoughness: 0.2
     });
+
     const mesh = new THREE.Mesh(geom, mat);
+
+    // obrysy hran
     const edges = new THREE.LineSegments(
-  new THREE.EdgesGeometry(geom),
-  new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35 })
-);
-mesh.add(edges);
+      new THREE.EdgesGeometry(geom),
+      new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35 })
+    );
+    mesh.add(edges);
 
     // rozložení do mřížky
     const cols = Math.min(3, total), rows = Math.ceil(total / cols);
@@ -128,13 +144,14 @@ mesh.add(edges);
 
     // číslo jako lehký „badge“
     const label = createTextSprite(value);
-   label.position.set(0, 1.05, 0); // výš nad kostkou
-label.center.set(0.5, 0.1);     // „kotva“ níž, ať je číslo ještě výš
+    label.position.set(0, 1.05, 0);   // výš nad kostkou
+    label.center.set(0.5, 0.1);       // „kotva“ níž, ať je číslo ještě výš
     mesh.add(label);
     mesh.userData.label = label;
 
     scene.add(mesh);
     active.push(mesh);
+
     // udržuj scénu lehkou
     if (active.length > 18) {
       const old = active.shift();
@@ -152,7 +169,7 @@ label.center.set(0.5, 0.1);     // „kotva“ níž, ať je číslo ještě vý
       const duration = 900 + Math.random() * 300;
       const st = { y: mesh.position.y, r1: mesh.rotation.x, r2: mesh.rotation.y, r3: mesh.rotation.z };
       const ed = { y: 0.65 + Math.random() * 0.06,
-             r1: st.r1 + Math.PI * 2, r2: st.r2 + Math.PI * 2, r3: st.r3 + Math.PI * 2 };
+                   r1: st.r1 + Math.PI * 2, r2: st.r2 + Math.PI * 2, r3: st.r3 + Math.PI * 2 };
 
       new TWEEN.Tween(st)
         .to(ed, duration)
@@ -176,7 +193,7 @@ label.center.set(0.5, 0.1);     // „kotva“ níž, ať je číslo ještě vý
         .start();
     }
 
-    // po 5 s vyfadeovat, ať scéna nezarůstá
+    // po ~5 s vyfadeovat, ať scéna nezarůstá
     setTimeout(() => {
       if (!mesh.parent) return;
       if (window.TWEEN) {
@@ -196,6 +213,21 @@ label.center.set(0.5, 0.1);     // „kotva“ níž, ať je číslo ještě vý
     for (let i = 0; i < count; i++) spawnDie(sides, values[i], i, count);
   }
 
+  // pro tlačítko „Vyčistit“
+  function clear() {
+    while (active.length) {
+      const m = active.pop();
+      scene.remove(m);
+      m.traverse(o => {
+        if (o.isSprite && o.material && o.material.map) o.material.map.dispose();
+        if (o.material && o.material.map) o.material.map.dispose();
+        if (o.material) o.material.dispose();
+        if (o.geometry) o.geometry.dispose();
+      });
+    }
+    renderer.render(scene, camera);
+  }
+
   function animate() {
     requestAnimationFrame(animate);
     if (window.TWEEN) TWEEN.update();
@@ -204,5 +236,5 @@ label.center.set(0.5, 0.1);     // „kotva“ níž, ať je číslo ještě vý
     renderer.render(scene, camera);
   }
 
-  return { init, roll };
+  return { init, roll, clear };
 })();
