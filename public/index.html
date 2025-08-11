@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Top bar -->
   <header class="topbar">
     <div class="brand">🎲 DnD Kostky</div>
     <div class="session">
@@ -18,66 +19,68 @@
       </label>
       <button id="joinBtn" class="primary">Připojit</button>
       <button id="shareBtn" title="Zkopíruje odkaz na aktuální stůl">Sdílet odkaz</button>
-      <button id="muteBtn" title="Zapnout/vypnout zvuk">🔇 Zvuk</button>
-                                                                             
     </div>
   </header>
 
-<main class="wrap twoCols">
-  <!-- Hod kostkou přes oba sloupce -->
-  <section class="roller card span-2">
-    <h2>Hod kostkou</h2>
+  <main class="wrap twoCols">
+    <!-- Hod kostkou (přes oba sloupce) -->
+    <section class="roller card span-2">
+      <h2>Hod kostkou</h2>
 
-    <div class="grid form">
-      <label>Kostka
-        <select id="sidesSelect">
-          <option value="4">d4</option>
-          <option value="6">d6</option>
-          <option value="8">d8</option>
-          <option value="10">d10</option>
-          <option value="12">d12</option>
-          <option value="20" selected>d20</option>
-          <option value="100">d100</option>
-        </select>
-      </label>
+      <div class="grid form">
+        <label>Kostka
+          <select id="sidesSelect">
+            <option value="4">d4</option>
+            <option value="6">d6</option>
+            <option value="8">d8</option>
+            <option value="10">d10</option>
+            <option value="12">d12</option>
+            <option value="20" selected>d20</option>
+            <option value="100">d100</option>
+          </select>
+        </label>
 
-      <label>Počet
-        <input id="countInput" type="number" min="1" max="10" value="1">
-      </label>
+        <label>Počet
+          <input id="countInput" type="number" min="1" max="10" value="1">
+        </label>
 
-      <label>Modifikátor
-        <input id="modInput" type="number" min="-99" max="99" value="0">
-      </label>
+        <label>Modifikátor
+          <input id="modInput" type="number" min="-99" max="99" value="0">
+        </label>
 
-      <!-- sloupec s akcemi -->
-      <div class="actions vstack">
-        <button id="rollBtn" class="accent">Hodit!</button>
-        <div class="row">
-          <button id="advBtn" type="button">Adv (d20)</button>
-          <button id="disBtn" type="button">Dis (d20)</button>
+        <!-- sloupec s hlavní akcí -->
+        <div class="actions vstack">
+          <button id="rollBtn" class="accent">Hodit!</button>
+          <div class="row">
+            <button id="advBtn" type="button" title="Advantage hod (dvě d20, vezme se vyšší)">Adv (d20)</button>
+            <button id="disBtn" type="button" title="Disadvantage hod (dvě d20, vezme se nižší)">Dis (d20)</button>
+          </div>
         </div>
-        <button id="clearBtn" title="Smazat výsledky a animace">Vyčistit</button>
-        <button id="exportBtn" type="button">Export CSV</button>
       </div>
-    </div>
 
-    <p class="hint">Tip: sdílej odkaz na stůl, ať házíte společně.</p>
-  </section>
+      <!-- Action bar pod formulářem -->
+      <div class="actionBar">
+        <button id="muteBtn" type="button" title="Zapnout/vypnout zvuk">🔊 Zvuk</button>
+        <div class="spacer"></div>
+        <button id="clearBtn"  type="button" title="Smazat výsledky a 3D kostky">Vyčistit</button>
+        <button id="exportBtn" type="button" title="Export historie do CSV">Export CSV</button>
+      </div>
 
- <!-- 3D SCÉNA -->
-<section class="scene card">
-  <h2>3D kostky</h2>
-  <div id="dice3d"></div>
-</section>
+      <p class="hint">Tip: sdílej odkaz na stůl, ať házíte společně.</p>
+    </section>
 
-  <!-- Výsledky vpravo (sticky) -->
-  <aside class="feed card sticky">
-    <h2>Výsledky</h2>
-    <div id="feed" class="feedList" aria-live="polite"></div>
-  </aside>
-</main>
+    <!-- 3D scéna (levý sloupec) -->
+    <section class="scene card">
+      <h2>3D kostky</h2>
+      <div id="dice3d"></div>
+    </section>
 
-
+    <!-- Výsledky (pravý sloupec, sticky) -->
+    <aside class="feed card sticky">
+      <h2>Výsledky</h2>
+      <div id="feed" class="feedList" aria-live="polite"></div>
+    </aside>
+  </main>
 
   <footer class="foot"></footer>
 
