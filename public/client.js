@@ -1,27 +1,38 @@
 document.addEventListener('DOMContentLoaded', () => {
   // ------------------------------
-  // 0) Logování do "Výsledky"
+  // 0) Logování do "Výsledky" (nejnovější nahoře, šum odfiltrovaný)
   // ------------------------------
   let feed = document.getElementById('feed');
-  function logToFeed(text) {
-  const row = document.createElement('div');
-  row.className = 'item';
-  const meta = document.createElement('div');
-  meta.className = 'meta sys';
-  meta.textContent = new Date().toLocaleTimeString() + ' · ' + text;
-  row.appendChild(meta);
 
-  try {
+  function logToFeed(text) {
+    // Hlášky, které nechceme ve feedu zobrazovat (šum):
+    const NOISY = [
+      /^📦 /,          // client.js start
+      /^✅ DOM/,       // DOM prvky OK
+      /^🧊 /,          // 3D inicializováno
+      /^▶️ /,          // auto-join
+      /^🎯 /,          // roll-dice odeslán
+      /^📡 /,          // poslán join-room
+      /^🔗 /           // odkaz zkopírován
+    ];
+    if (NOISY.some(rx => rx.test(text))) return;
+
+    const row = document.createElement('div');
+    row.className = 'item';
+    const meta = document.createElement('div');
+    meta.className = 'meta sys';
+    meta.textContent = new Date().toLocaleTimeString() + ' · ' + text;
+    row.appendChild(meta);
+
     if (feed) {
-      // vlož nahoře + zůstaň u horního okraje
+      // vlož NAHOŘE a nech scrollbar u horního okraje
       feed.insertBefore(row, feed.firstChild || null);
       feed.scrollTop = 0;
     } else {
       document.body.appendChild(row);
-      // window.scrollTo(0,0); // volitelné
     }
-  } catch {}
-}
+  }
+
   window.addEventListener('error', (e) => logToFeed('Chyba: ' + (e.message || e)));
   logToFeed('📦 client.js start');
 
@@ -144,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function ensureSocketIO() {
     return new Promise((resolve) => {
       if (window.io) return resolve(true);
-      logToFeed('ℹ️ window.io chybí – zkusím načíst /socket.io/socket.io.js');
+      // beze zbytečného logování – zalogujeme jen průšvih
       const s = document.createElement('script');
       s.src = '/socket.io/socket.io.js';
       s.onload = () => resolve(!!window.io);
@@ -220,13 +231,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     div.appendChild(meta);
     div.appendChild(resLine);
-    (feed || document.body).appendChild(div);
+
+    // >>> NEJNOVĚJŠÍ NAHOŘE <<<
     if (feed) {
-  feed.insertBefore(div, feed.firstChild || null);
-  feed.scrollTop = 0;
-} else {
-  document.body.appendChild(div);
-}
+      feed.insertBefore(div, feed.firstChild || null);
+      feed.scrollTop = 0;
+    } else {
+      document.body.appendChild(div);
+    }
   }
 
   // historie pro export
@@ -284,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('joined', ({ room, player }) => logToFeed(`✅ Připojeno ke stolu „${room}“ jako ${player}.`));
     socket.on('system', (msg) => logToFeed((msg && msg.text) || 'system'));
     socket.on('dice-result', (res) => {
-      // >>> ZVUK ZDE <<<
+      // zvuk
       playRollSound();
 
       // uložit pro export
