@@ -50,11 +50,16 @@ scene.add(floor);
   }
 
   function palette(sides) {
-    return ({
-      4: 0x6b8cff, 6: 0x7bf1a8, 8: 0xffcf6e,
-      10: 0xff8db7, 12: 0x9aa4ff, 20: 0x3aa2ff, 100: 0xeb9fff
-    })[sides] || 0xbad7ff;
-  }
+  return ({
+    4:  0x27262b, // obsidian d4
+    6:  0xc79b3b, // brass d6
+    8:  0x5aa3c6, // sapphire d8
+    10: 0x8a4baf, // amethyst d10
+    12: 0x4e7c3a, // jade d12
+    20: 0xb83c3c, // crimson d20
+    100:0x8e8e8e // steel d100
+  })[sides] || 0xbad7ff;
+}
 
   function geometryForSides(sides) {
     const r = 0.6;
@@ -92,6 +97,11 @@ scene.add(floor);
       color: palette(sides), roughness: 0.5, metalness: 0.25, envMapIntensity: 0.3
     });
     const mesh = new THREE.Mesh(geom, mat);
+    const edges = new THREE.LineSegments(
+  new THREE.EdgesGeometry(geom),
+  new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.35 })
+);
+mesh.add(edges);
 
     // rozložení do mřížky
     const cols = Math.min(3, total), rows = Math.ceil(total / cols);
@@ -127,7 +137,8 @@ scene.add(floor);
     if (window.TWEEN) {
       const duration = 900 + Math.random() * 300;
       const st = { y: mesh.position.y, r1: mesh.rotation.x, r2: mesh.rotation.y, r3: mesh.rotation.z };
-      const ed = { y: 0.65 + Math.random() * 0.06, r1: st.r1 + Math.PI * 2, r2: st.r2 + Math.PI * 2, r3: st.r3 + Math.PI * 2 };
+      const ed = { y: 0.65 + Math.random() * 0.06,
+             r1: st.r1 + Math.PI * 2, r2: st.r2 + Math.PI * 2, r3: st.r3 + Math.PI * 2 };
 
       new TWEEN.Tween(st)
         .to(ed, duration)
