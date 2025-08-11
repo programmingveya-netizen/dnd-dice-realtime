@@ -4,15 +4,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // ------------------------------
   let feed = document.getElementById('feed');
   function logToFeed(text) {
-    const row = document.createElement('div');
-    row.className = 'item';
-    const meta = document.createElement('div');
-    meta.className = 'meta sys';
-    meta.textContent = new Date().toLocaleTimeString() + ' · ' + text;
-    row.appendChild(meta);
-    (feed || document.body).appendChild(row);
-    try { (feed || document.body).scrollTop = (feed || document.body).scrollHeight; } catch {}
-  }
+  const row = document.createElement('div');
+  row.className = 'item';
+  const meta = document.createElement('div');
+  meta.className = 'meta sys';
+  meta.textContent = new Date().toLocaleTimeString() + ' · ' + text;
+  row.appendChild(meta);
+
+  try {
+    if (feed) {
+      // vlož nahoře + zůstaň u horního okraje
+      feed.insertBefore(row, feed.firstChild || null);
+      feed.scrollTop = 0;
+    } else {
+      document.body.appendChild(row);
+      // window.scrollTo(0,0); // volitelné
+    }
+  } catch {}
+}
   window.addEventListener('error', (e) => logToFeed('Chyba: ' + (e.message || e)));
   logToFeed('📦 client.js start');
 
@@ -212,7 +221,12 @@ document.addEventListener('DOMContentLoaded', () => {
     div.appendChild(meta);
     div.appendChild(resLine);
     (feed || document.body).appendChild(div);
-    try { (feed || document.body).scrollTop = (feed || document.body).scrollHeight; } catch {}
+    if (feed) {
+  feed.insertBefore(div, feed.firstChild || null);
+  feed.scrollTop = 0;
+} else {
+  document.body.appendChild(div);
+}
   }
 
   // historie pro export
