@@ -1,19 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // --- Pomocné: loguj přímo do feedu, ať vše vidíš na stránce ---
-  const feed = document.getElementById('feed');
+  // --- Pomocné: loguj do feedu; když chybí #feed, pišeme do body ---
+  let feed = document.getElementById('feed');
   function logToFeed(text) {
-    try {
-      const row = document.createElement('div');
-      row.className = 'item';
-      const meta = document.createElement('div');
-      meta.className = 'meta sys';
-      meta.textContent = new Date().toLocaleTimeString() + ' · ' + text;
-      row.appendChild(meta);
-      feed.appendChild(row);
-      feed.scrollTop = feed.scrollHeight;
-    } catch {}
+    const row = document.createElement('div');
+    row.className = 'item';
+    const meta = document.createElement('div');
+    meta.className = 'meta sys';
+    meta.textContent = new Date().toLocaleTimeString() + ' · ' + text;
+    row.appendChild(meta);
+    (feed || document.body).appendChild(row);  // fallback do body
+    try { (feed || document.body).scrollTop = (feed || document.body).scrollHeight; } catch {}
   }
+
   window.addEventListener('error', (e) => logToFeed('Chyba: ' + (e.message || e)));
+
   logToFeed('📦 client.js start');
 
   // --- 3D init (bezpečné; když Three.js chybí, jen se to přeskočí) ---
