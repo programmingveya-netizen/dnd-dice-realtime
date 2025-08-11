@@ -81,7 +81,7 @@ const HISTORY = []; // budeme plnit pro CSV export
 
     const notation = document.createElement('span');
     notation.className = 'badge';
-    notation.textContent = `${res.count}d${res.sides}` + (res.modifier ? (res.modifier>0?' +':' ') + res.modifier : '');
+    notation.textContent = formatNotation(res.count, res.sides, res.modifier, res.mode);
 
     const rollsWrap = document.createElement('span');
     const ANIM_TICKS = 12, TICK_MS = 50;
@@ -103,6 +103,15 @@ const HISTORY = []; // budeme plnit pro CSV export
       }, TICK_MS);
       rollsWrap.appendChild(d);
     });
+function formatNotation(count, sides, mod, mode) {
+  const kind = (mode === 'adv' && sides === 20) ? 'adv'
+             : (mode === 'dis' && sides === 20) ? 'dis'
+             : '';
+  const base = kind ? `${count}×(d${sides} ${kind})` : `${count}d${sides}`;
+  if (!mod || mod === 0) return base;
+  const sign = mod > 0 ? '+' : '';
+  return `${base} ${sign}${mod}`;
+}
 
     const total = document.createElement('span');
     total.className = 'total';
