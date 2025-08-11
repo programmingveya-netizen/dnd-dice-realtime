@@ -15,7 +15,10 @@ window.Dice3D = (() => {
 
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-    camera.position.set(0, 2.2, 4.2);
+// o něco výš a dál, ať není spodek oříznutý
+camera.position.set(0, 3.2, 5.2);
+camera.lookAt(0, 0.8, 0);
+
 
     // světla
     scene.add(new THREE.AmbientLight(0xffffff, 0.75));
@@ -28,7 +31,8 @@ window.Dice3D = (() => {
       new THREE.MeshStandardMaterial({ color: 0x0e141b, roughness: 1 })
     );
     floor.rotation.x = -Math.PI / 2;
-    scene.add(floor);
+floor.position.y = -0.10;  // NOVÉ – lehce sníží stůl, ať je víc místa dole
+scene.add(floor);
 
     window.addEventListener('resize', resize);
     resize();
