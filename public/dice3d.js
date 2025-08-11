@@ -11,10 +11,10 @@ window.Dice3D = (() => {
     // Renderer – jemné tonemapping + fyzikální světla, žádná “podlaha”
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
-    renderer.setClearColor(0x111823, 1);              // jednotné pozadí (žádná vodorovná čára)
+    renderer.setClearColor(0x121922, 1);              // světlejší canvas (kontrastnější)
     renderer.physicallyCorrectLights = true;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 1.25;              // jemné „přisvícení“
 
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
@@ -27,10 +27,10 @@ window.Dice3D = (() => {
     camera.lookAt(0, 0.8, 0);
 
     // Světla — jasnější set + rim/fill shora
-    scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-    const key = new THREE.DirectionalLight(0xffffff, 1.2); key.position.set(5, 7, 6);   scene.add(key);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+    const key  = new THREE.DirectionalLight(0xffffff, 1.2); key.position.set( 5, 7,  6); scene.add(key);
     const fill = new THREE.DirectionalLight(0xffffff, 0.6); fill.position.set(-4, 3, -2); scene.add(fill);
-    const hemi = new THREE.HemisphereLight(0x99bbff, 0x0b0f14, 0.6); scene.add(hemi);
+    const hemi = new THREE.HemisphereLight(0x99bbff, 0x0b0f14, 0.6);               scene.add(hemi);
     const rim  = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(-4, 5, -3); scene.add(rim);
 
     window.addEventListener('resize', resize);
@@ -50,27 +50,27 @@ window.Dice3D = (() => {
   // Lehce světlejší DnD paleta (lepší kontrast)
   function palette(sides) {
     return ({
-      4:  0x3a3940, // obsidian (světlejší)
-      6:  0xd1a84b, // brass
-      8:  0x6bb6d8, // sapphire
-      10: 0x9a6cd8, // amethyst – d10 bývala tmavá
-      12: 0x5c9a4a, // jade
-      20: 0xcf4b4b, // crimson
-      100:0xa8a8a8  // steel
+      4:   0x3a3940, // obsidian (světlejší)
+      6:   0xd1a84b, // brass
+      8:   0x6bb6d8, // sapphire
+      10:  0x9a6cd8, // amethyst – d10 bývala tmavá
+      12:  0x5c9a4a, // jade
+      20:  0xcf4b4b, // crimson
+      100: 0xa8a8a8  // steel
     })[sides] || 0xbad7ff;
   }
 
   function geometryForSides(sides) {
     const r = 0.6;
     switch (sides) {
-      case 4:  return new THREE.TetrahedronGeometry(r, 0);
-      case 6:  return new THREE.BoxGeometry(r * 1.2, r * 1.2, r * 1.2, 2, 2, 2); // víc segmentů = hezčí světlo
-      case 8:  return new THREE.OctahedronGeometry(r, 0);
-      case 10: return new THREE.CylinderGeometry(r * 0.9, r * 0.9, r * 1.2, 10, 1, true);
-      case 12: return new THREE.DodecahedronGeometry(r, 0);
-      case 20: return new THREE.IcosahedronGeometry(r, 0);
-      case 100:return new THREE.CylinderGeometry(r * 0.9, r * 0.9, r * 1.2, 10, 1, true);
-      default: return new THREE.BoxGeometry(r * 1.2, r * 1.2, r * 1.2, 2, 2, 2);
+      case 4:   return new THREE.TetrahedronGeometry(r, 0);
+      case 6:   return new THREE.BoxGeometry(r * 1.2, r * 1.2, r * 1.2, 2, 2, 2); // víc segmentů = hezčí světlo
+      case 8:   return new THREE.OctahedronGeometry(r, 0);
+      case 10:  return new THREE.CylinderGeometry(r * 0.9, r * 0.9, r * 1.2, 10, 1, false); // UZAVŘENÉ konce
+      case 12:  return new THREE.DodecahedronGeometry(r, 0);
+      case 20:  return new THREE.IcosahedronGeometry(r, 0);
+      case 100: return new THREE.CylinderGeometry(r * 0.9, r * 0.9, r * 1.2, 10, 1, false); // UZAVŘENÉ konce
+      default:  return new THREE.BoxGeometry(r * 1.2, r * 1.2, r * 1.2, 2, 2, 2);
     }
   }
 
