@@ -126,7 +126,7 @@ scene.add(floor);
     if (window.TWEEN) {
       const duration = 900 + Math.random() * 300;
       const st = { y: mesh.position.y, r1: mesh.rotation.x, r2: mesh.rotation.y, r3: mesh.rotation.z };
-      const ed = { y: 0.42 + Math.random() * 0.06, r1: st.r1 + Math.PI * 2, r2: st.r2 + Math.PI * 2, r3: st.r3 + Math.PI * 2 };
+      const ed = { y: 0.65 + Math.random() * 0.06, r1: st.r1 + Math.PI * 2, r2: st.r2 + Math.PI * 2, r3: st.r3 + Math.PI * 2 };
 
       new TWEEN.Tween(st)
         .to(ed, duration)
