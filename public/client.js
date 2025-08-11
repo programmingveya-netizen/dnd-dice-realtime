@@ -123,3 +123,59 @@
   // Auto-join po načtení
   joinRoom();
 })();
+function addResultItem(res) {
+  const div = document.createElement('div');
+  div.className = 'item';
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const who = document.createElement('div'); who.textContent = res.player;
+  const when = document.createElement('div'); when.textContent = new Date(res.ts).toLocaleTimeString();
+  meta.appendChild(who); meta.appendChild(when);
+
+  const resLine = document.createElement('div');
+  resLine.className = 'res';
+
+  const notation = document.createElement('span');
+  notation.className = 'badge';
+  notation.textContent = `${res.count}d${res.sides}` + (res.modifier ? (res.modifier > 0 ? ` +${res.modifier}` : ` ${res.modifier}`) : '');
+
+  const rollsWrap = document.createElement('span');
+
+  // vytvoř "rolling" elementy a animuj čísla chvilku před zobrazením výsledku
+  const ANIM_TICKS = 12;   // kolikrát náhodně přebliknout
+  const TICK_MS = 50;
+
+  res.rolls.forEach((finalVal) => {
+    const d = document.createElement('span');
+    d.className = 'die rolling';
+    let t = 0;
+    const flicker = setInterval(() => {
+      d.textContent = 1 + Math.floor(Math.random() * res.sides);
+      if (++t >= ANIM_TICKS) {
+        clearInterval(flicker);
+        d.classList.remove('rolling');
+        d.textContent = finalVal;
+        if (res.sides === 20) {
+          if (finalVal === 20) d.classList.add('nat20');
+          if (finalVal === 1)  d.classList.add('nat1');
+        }
+      }
+    }, TICK_MS);
+    rollsWrap.appendChild(d);
+  });
+
+  const total = document.createElement('span');
+  total.className = 'total';
+  total.textContent = `Celkem: ${res.total}`;
+
+  resLine.appendChild(notation);
+  resLine.appendChild(rollsWrap);
+  resLine.appendChild(total);
+
+  div.appendChild(meta);
+  div.appendChild(resLine);
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+}
+
