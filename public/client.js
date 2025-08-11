@@ -30,6 +30,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const countInput  = $('countInput');
   const modInput    = $('modInput');
   const rollBtn     = $('rollBtn');
+  const advBtn    = $('advBtn');
+const disBtn    = $('disBtn');
+const muteBtn   = $('muteBtn');
+const exportBtn = $('exportBtn');
+
+const HISTORY = []; // budeme plnit pro CSV export
+
 
   const missing = [playerInput, roomInput, joinBtn, shareBtn, sidesSelect, countInput, modInput, rollBtn, feed].filter(x => !x).length;
   if (missing) { logToFeed('❌ Chybí ' + missing + ' prvků v HTML (zkontroluj ID).'); return; }
