@@ -75,21 +75,34 @@ scene.add(floor);
     }
   }
 
-  function createTextSprite(text) {
-    const size = 128;
-    const cnv = document.createElement('canvas'); cnv.width = size; cnv.height = size;
-    const ctx = cnv.getContext('2d');
-    ctx.fillStyle = 'rgba(0,0,0,.35)';
-    ctx.beginPath(); ctx.arc(size/2, size/2, size/2-6, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 72px system-ui, -apple-system, Segoe UI, Roboto, Arial';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(String(text), size/2, size/2);
-    const tex = new THREE.CanvasTexture(cnv); tex.anisotropy = 2;
-    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
-    spr.scale.set(0.6, 0.6, 1);
-    return spr;
-  }
+ function createTextSprite(text) {
+  const size = 128;
+  const cnv = document.createElement('canvas'); cnv.width = size; cnv.height = size;
+  const ctx = cnv.getContext('2d');
+
+  // podklad pod číslem (tmavý kotouč pro čitelnost)
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  ctx.beginPath(); ctx.arc(size/2, size/2, size/2-8, 0, Math.PI*2); ctx.fill();
+
+  // číslo – „fantasy“ serif + jemný obrys
+  ctx.fillStyle = '#f2eadd';
+  ctx.font = '700 72px "Times New Roman", Georgia, serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,0,0,.55)';
+  ctx.strokeText(String(text), size/2, size/2);
+  ctx.fillText(String(text), size/2, size/2);
+
+  const tex = new THREE.CanvasTexture(cnv); tex.anisotropy = 2;
+
+  // TRIK: čísla vždy navrch
+  const mat = new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthTest: false, depthWrite: false
+  });
+  const spr = new THREE.Sprite(mat);
+  spr.renderOrder = 999;   // vysoká priorita při kreslení
+  spr.scale.set(0.65, 0.65, 1);
+  return spr;
+}
 
   function spawnDie(sides, value, i, total) {
     const geom = geometryForSides(sides);
@@ -115,7 +128,8 @@ mesh.add(edges);
 
     // číslo jako lehký „badge“
     const label = createTextSprite(value);
-    label.position.set(0, 0.9, 0);
+   label.position.set(0, 1.05, 0); // výš nad kostkou
+label.center.set(0.5, 0.1);     // „kotva“ níž, ať je číslo ještě výš
     mesh.add(label);
     mesh.userData.label = label;
 
