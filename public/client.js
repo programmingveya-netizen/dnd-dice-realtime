@@ -5,12 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // (Volitelné) inicializace 3D scény – pokud je k dispozici dice3d.js a <div id="dice3d">
+  // 3D scéna (pokud existuje dice3d.js a #dice3d)
   if (window.Dice3D) {
     try { Dice3D.init('dice3d'); } catch (e) { console.warn('Dice3D init error:', e); }
   }
 
-  // 2) Najdi prvky v DOM (když chybí ID, zobrazíme hlášku – nic se nezablokuje)
+  // 2) Najdi prvky v DOM
   const $ = (id) => document.getElementById(id);
   const playerInput = $('playerInput');
   const roomInput   = $('roomInput');
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 3) Připojení k Socket.IO
-  const socket = io(); // stejné origin, funguje i na Renderu
+  const socket = io();
 
   // 4) Helpery
   playerInput.value = localStorage.getItem('playerName') || '';
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${base} ${sign}${mod}`;
   }
 
-  // 5) Animované zobrazení výsledků (shake → finální čísla, + highlight nat1/nat20)
+  // 5) Výpis výsledků + lehká 2D animace
   function addResultItem(res) {
     const div = document.createElement('div');
     div.className = 'item';
@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const rollsWrap = document.createElement('span');
 
-    const ANIM_TICKS = 12; // kolikrát „přebliknout“
+    const ANIM_TICKS = 12;
     const TICK_MS = 50;
 
     res.rolls.forEach((finalVal) => {
@@ -121,42 +121,4 @@ document.addEventListener('DOMContentLoaded', () => {
     history.replaceState(null, '', url.toString());
   }
 
-  // 6) Socket události
-  socket.on('connect', () => addSystemMessage('✅ Připojeno k serveru.', Date.now()));
-  socket.on('connect_error', (err) => addSystemMessage('⚠️ Problém s připojením: ' + err.message, Date.now()));
-  socket.on('joined', ({ room, player }) => addSystemMessage(`Připojeno ke stolu „${room}“ jako ${player}.`, Date.now()));
-  socket.on('system', (msg) => addSystemMessage(msg.text, msg.ts || Date.now()));
-  socket.on('dice-result', (res) => {
-    addResultItem(res);
-    // Spusť 3D animaci, pokud je k dispozici
-    if (window.Dice3D) {
-      try { Dice3D.roll(res.sides, res.rolls); } catch (e) { console.warn('Dice3D roll error:', e); }
-    }
-  });
-
-  // 7) Ovládání UI
-  joinBtn.addEventListener('click', joinRoom);
-  playerInput.addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
-  roomInput.addEventListener('keydown',  e => { if (e.key === 'Enter') joinRoom(); });
-
-  shareBtn.addEventListener('click', async () => {
-    const url = new URL(location.href);
-    url.searchParams.set('room', (roomInput.value || 'stul-1').trim());
-    try {
-      await navigator.clipboard.writeText(url.toString());
-      addSystemMessage('Odkaz na stůl zkopírován do schránky.', Date.now());
-    } catch {
-      addSystemMessage('Nepodařilo se zkopírovat odkaz.', Date.now());
-    }
-  });
-
-  rollBtn.addEventListener('click', () => {
-    const sides = parseInt(sidesSelect.value, 10);
-    const count = Math.min(10, Math.max(1, parseInt(countInput.value || '1', 10)));
-    const modifier = Math.min(99, Math.max(-99, parseInt(modInput.value || '0', 10)));
-    socket.emit('roll-dice', { sides, count, modifier });
-  });
-
-  // 8) Auto-join po načtení
-  joinRoom();
-});
+  // 6
